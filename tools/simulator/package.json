@@ -1,0 +1,17 @@
+{
+  "name": "streampulse-simulator",
+  "version": "0.1.0",
+  "private": true,
+  "description": "StreamPulse Synthetic Telemetry Session Generator & Simulator",
+  "type": "module",
+  "main": "src/cli.ts",
+  "scripts": {
+    "simulate": "tsx src/cli.ts",
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

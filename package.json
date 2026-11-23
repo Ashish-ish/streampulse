@@ -1,0 +1,12 @@
+{
+  "name": "streampulse",
+  "version": "0.1.0",
+  "private": true,
+  "description": "StreamPulse — Cross-Platform Playback Telemetry (QoE) Library & Dashboard",
+  "scripts": {
+    "dev": "npm run start --prefix server",
+    "build": "npm run build --prefix dashboard && npm run build --prefix server && npm run build --prefix tools/simulator",
+    "simulate": "node tools/simulator/dist/cli.js",
+    "test": "make check && npm test --prefix server"
+  }
+}
