@@ -1,0 +1,393 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://streampulse.dev/schemas/event-v1.json",
+  "title": "StreamPulseBatch",
+  "description": "StreamPulse telemetry batch, schema_version 1.0. Additional properties are rejected. Unknown event types are not valid here; the server removes them and counts them before validation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "batch_id", "sent_at", "sdk", "app", "device", "events"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "batch_id": { "$ref": "#/$defs/UuidV4" },
+    "sent_at": { "$ref": "#/$defs/Timestamp" },
+    "sdk": { "$ref": "#/$defs/SdkInfo" },
+    "app": { "$ref": "#/$defs/AppInfo" },
+    "device": { "$ref": "#/$defs/DeviceInfo" },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 500,
+      "items": { "$ref": "#/$defs/Event" }
+    }
+  },
+  "$defs": {
+    "UuidV4": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "Timestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})Z$"
+    },
+    "SafeInt": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "Seq": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "ShortString": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "OptionalLabel": {
+      "type": "string",
+      "minLength": 0,
+      "maxLength": 64
+    },
+    "Platform": {
+      "type": "string",
+      "enum": ["android", "ios", "web", "rn"]
+    },
+    "NetworkType": {
+      "type": "string",
+      "enum": ["wifi", "cellular", "ethernet", "none", "unknown"]
+    },
+    "StreamType": {
+      "type": "string",
+      "enum": ["vod", "live"]
+    },
+    "Protocol": {
+      "type": "string",
+      "enum": ["hls", "dash", "progressive"]
+    },
+    "PlaybackEndReason": {
+      "type": "string",
+      "enum": ["ended", "user_exit", "error", "background"]
+    },
+    "AppHealthKind": {
+      "type": "string",
+      "enum": ["crash", "anr", "hang", "native_crash"]
+    },
+    "SdkInfo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "enum": ["streampulse-android", "streampulse-ios", "streampulse-web", "streampulse-react-native"]
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,4})\\.(0|[1-9][0-9]{0,4})\\.(0|[1-9][0-9]{0,4})$"
+        }
+      }
+    },
+    "AppInfo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "build"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "version": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "build": { "type": "string", "minLength": 1, "maxLength": 32 }
+      }
+    },
+    "DeviceInfo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["install_id", "platform", "os_version", "model", "network_type"],
+      "properties": {
+        "install_id": { "$ref": "#/$defs/UuidV4" },
+        "platform": { "$ref": "#/$defs/Platform" },
+        "os_version": { "$ref": "#/$defs/OptionalLabel" },
+        "model": { "$ref": "#/$defs/OptionalLabel" },
+        "network_type": { "$ref": "#/$defs/NetworkType" }
+      }
+    },
+    "PlayerInfo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "$ref": "#/$defs/ShortString" },
+        "version": { "$ref": "#/$defs/ShortString" }
+      }
+    },
+    "EmptyData": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {}
+    },
+    "SessionStartData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["content_id", "content_id_hashed", "stream_type", "protocol", "player"],
+      "properties": {
+        "content_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "content_id_hashed": { "type": "boolean" },
+        "stream_type": { "$ref": "#/$defs/StreamType" },
+        "protocol": { "$ref": "#/$defs/Protocol" },
+        "player": { "$ref": "#/$defs/PlayerInfo" },
+        "cdn": { "type": "string", "minLength": 1, "maxLength": 64 }
+      }
+    },
+    "SeekStartData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from_ms", "to_ms"],
+      "properties": {
+        "from_ms": { "$ref": "#/$defs/SafeInt" },
+        "to_ms": { "$ref": "#/$defs/SafeInt" }
+      }
+    },
+    "QualityChangeData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bitrate_bps", "width", "height"],
+      "properties": {
+        "bitrate_bps": { "type": "integer", "minimum": 0, "maximum": 1000000000 },
+        "width": { "type": "integer", "minimum": 0, "maximum": 15360 },
+        "height": { "type": "integer", "minimum": 0, "maximum": 15360 }
+      }
+    },
+    "DroppedFramesData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dropped", "rendered"],
+      "properties": {
+        "dropped": { "$ref": "#/$defs/SafeInt" },
+        "rendered": { "$ref": "#/$defs/SafeInt" }
+      }
+    },
+    "PlaybackErrorData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "fatal", "message"],
+      "properties": {
+        "code": { "type": "string", "pattern": "^[A-Z0-9_]{1,64}$" },
+        "fatal": { "type": "boolean" },
+        "message": { "type": "string", "maxLength": 200 }
+      }
+    },
+    "HeartbeatData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["position_ms", "buffered_ms", "dropped_total", "rendered_total"],
+      "properties": {
+        "position_ms": { "$ref": "#/$defs/SafeInt" },
+        "buffered_ms": { "$ref": "#/$defs/SafeInt" },
+        "dropped_total": { "$ref": "#/$defs/SafeInt" },
+        "rendered_total": { "$ref": "#/$defs/SafeInt" }
+      }
+    },
+    "PlaybackEndData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason"],
+      "properties": {
+        "reason": { "$ref": "#/$defs/PlaybackEndReason" }
+      }
+    },
+    "AppHealthData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "occurred_at"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/AppHealthKind" },
+        "occurred_at": { "$ref": "#/$defs/Timestamp" }
+      }
+    },
+    "EventCommon": {
+      "type": "object",
+      "required": ["type", "session_id", "play_id", "seq", "t_mono_ms", "t_wall", "data"],
+      "properties": {
+        "type": { "type": "string" },
+        "session_id": { "$ref": "#/$defs/UuidV4" },
+        "play_id": { "$ref": "#/$defs/UuidV4" },
+        "seq": { "$ref": "#/$defs/Seq" },
+        "t_mono_ms": { "$ref": "#/$defs/SafeInt" },
+        "t_wall": { "$ref": "#/$defs/Timestamp" },
+        "data": { "type": "object" }
+      }
+    },
+    "Event": {
+      "oneOf": [
+        { "$ref": "#/$defs/SessionStartEvent" },
+        { "$ref": "#/$defs/PlayRequestedEvent" },
+        { "$ref": "#/$defs/FirstFrameEvent" },
+        { "$ref": "#/$defs/BufferingStartEvent" },
+        { "$ref": "#/$defs/BufferingEndEvent" },
+        { "$ref": "#/$defs/SeekStartEvent" },
+        { "$ref": "#/$defs/SeekEndEvent" },
+        { "$ref": "#/$defs/QualityChangeEvent" },
+        { "$ref": "#/$defs/DroppedFramesEvent" },
+        { "$ref": "#/$defs/PlaybackErrorEvent" },
+        { "$ref": "#/$defs/HeartbeatEvent" },
+        { "$ref": "#/$defs/PlaybackEndEvent" },
+        { "$ref": "#/$defs/AppHealthEvent" }
+      ]
+    },
+    "SessionStartEvent": {
+      "allOf": [
+        { "$ref": "#/$defs/EventCommon" },
+        {
+          "properties": {
+            "type": { "const": "session_start" },
+            "data": { "$ref": "#/$defs/SessionStartData" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "PlayRequestedEvent": {
+      "allOf": [
+        { "$ref": "#/$defs/EventCommon" },
+        {
+          "properties": {
+            "type": { "const": "play_requested" },
+            "data": { "$ref": "#/$defs/EmptyData" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "FirstFrameEvent": {
+      "allOf": [
+        { "$ref": "#/$defs/EventCommon" },
+        {
+          "properties": {
+            "type": { "const": "first_frame" },
+            "data": { "$ref": "#/$defs/EmptyData" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "BufferingStartEvent": {
+      "allOf": [
+        { "$ref": "#/$defs/EventCommon" },
+        {
+          "properties": {
+            "type": { "const": "buffering_start" },
+            "data": { "$ref": "#/$defs/EmptyData" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "BufferingEndEvent": {
+      "allOf": [
+        { "$ref": "#/$defs/EventCommon" },
+        {
+          "properties": {
+            "type": { "const": "buffering_end" },
+            "data": { "$ref": "#/$defs/EmptyData" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "SeekStartEvent": {
+      "allOf": [
+        { "$ref": "#/$defs/EventCommon" },
+        {
+          "properties": {
+            "type": { "const": "seek_start" },
+            "data": { "$ref": "#/$defs/SeekStartData" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "SeekEndEvent": {
+      "allOf": [
+        { "$ref": "#/$defs/EventCommon" },
+        {
+          "properties": {
+            "type": { "const": "seek_end" },
+            "data": { "$ref": "#/$defs/EmptyData" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "QualityChangeEvent": {
+      "allOf": [
+        { "$ref": "#/$defs/EventCommon" },
+        {
+          "properties": {
+            "type": { "const": "quality_change" },
+            "data": { "$ref": "#/$defs/QualityChangeData" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "DroppedFramesEvent": {
+      "allOf": [
+        { "$ref": "#/$defs/EventCommon" },
+        {
+          "properties": {
+            "type": { "const": "dropped_frames" },
+            "data": { "$ref": "#/$defs/DroppedFramesData" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "PlaybackErrorEvent": {
+      "allOf": [
+        { "$ref": "#/$defs/EventCommon" },
+        {
+          "properties": {
+            "type": { "const": "playback_error" },
+            "data": { "$ref": "#/$defs/PlaybackErrorData" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "HeartbeatEvent": {
+      "allOf": [
+        { "$ref": "#/$defs/EventCommon" },
+        {
+          "properties": {
+            "type": { "const": "heartbeat" },
+            "data": { "$ref": "#/$defs/HeartbeatData" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "PlaybackEndEvent": {
+      "allOf": [
+        { "$ref": "#/$defs/EventCommon" },
+        {
+          "properties": {
+            "type": { "const": "playback_end" },
+            "data": { "$ref": "#/$defs/PlaybackEndData" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "AppHealthEvent": {
+      "allOf": [
+        { "$ref": "#/$defs/EventCommon" },
+        {
+          "properties": {
+            "type": { "const": "app_health" },
+            "data": { "$ref": "#/$defs/AppHealthData" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  }
+}

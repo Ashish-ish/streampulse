@@ -1,0 +1,16 @@
+{
+  "id": "streampulse.sdk-defaults.v1",
+  "flush_event_count": 20,
+  "flush_interval_ms": 15000,
+  "max_batch_size": 20,
+  "max_queue_events": 5000,
+  "max_queue_bytes": 5000000,
+  "retry_base_ms": 2000,
+  "retry_cap_ms": 300000,
+  "retry_after_max_ms": 900000,
+  "retry_jitter_ratio": "0.20",
+  "heartbeat_interval_ms": 10000,
+  "error_message_max_chars": 200,
+  "default_sample_rate": "1.0",
+  "critical_event_types": ["app_health", "playback_end"]
+}

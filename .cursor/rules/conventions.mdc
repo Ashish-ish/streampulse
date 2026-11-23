@@ -1,0 +1,27 @@
+---
+description: StreamPulse Development Conventions and Guardrails
+globs: *
+alwaysApply: true
+---
+
+# StreamPulse Engineering Guardrails
+
+1. **Schema Authority**:
+   - `spec/event-schema.v1.json` is the sole source of truth.
+   - NEVER edit generated code by hand (`web/src/schema/models.ts`, `server/src/models.ts`, `core/.../StreamPulseModels.kt`, `ios/.../StreamPulseModels.swift`).
+   - Run `make generate` to update models and `make check` to verify freshness.
+
+2. **Metric Rigor**:
+   - Every metric must have an associated golden fixture in `spec/fixtures/`.
+   - Any metric formula modification requires updating the Python oracle (`spec/lib/compute.py`) and re-validating golden fixtures across all SDKs.
+
+3. **No Unfinished Code**:
+   - Zero `TODO`, `FIXME`, or placeholder stubs in production or shipped paths.
+   - All public APIs must be fully tested and documented.
+
+4. **Measurement Honesty**:
+   - Never invent or falsify benchmark figures. Always run reproducible benchmark scripts or leave placeholders documented as unmeasured.
+
+5. **Commit Discipline**:
+   - Conventional commits (`feat:`, `fix:`, `test:`, `docs:`, `chore:`).
+   - Public API changes must update corresponding documentation in the same commit.

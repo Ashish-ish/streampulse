@@ -1,0 +1,11 @@
+{
+  "id": "streampulse.qoe-weights.v1",
+  "startup": "0.30",
+  "rebuffer": "0.35",
+  "dropped_frames": "0.15",
+  "playback_failure": "0.20",
+  "startup_good_ms": 1000,
+  "startup_bad_ms": 5000,
+  "rebuffer_ratio_bad": "0.10",
+  "dropped_frame_ratio_bad": "0.05"
+}

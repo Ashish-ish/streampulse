@@ -1,0 +1,102 @@
+{
+  "id": "exit-before-start",
+  "name": "Exit Before Video Start (EBVS)",
+  "description": "User abandons playback before first_frame without experiencing an error.",
+  "batch": {
+    "schema_version": "1.0",
+    "batch_id": "b0000000-0000-4000-8000-000000000004",
+    "sent_at": "2026-11-23T12:00:30.000Z",
+    "sdk": {
+      "name": "streampulse-android",
+      "version": "0.1.0"
+    },
+    "app": {
+      "id": "dev.streampulse.sample",
+      "version": "1.0.0",
+      "build": "42"
+    },
+    "device": {
+      "install_id": "d0000000-0000-4000-8000-000000000001",
+      "platform": "android",
+      "os_version": "14",
+      "model": "Pixel 8",
+      "network_type": "wifi"
+    },
+    "events": [
+      {
+        "type": "session_start",
+        "session_id": "e0000000-0000-4000-8000-000000000001",
+        "play_id": "f0000000-0000-4000-8000-000000000001",
+        "seq": 0,
+        "t_mono_ms": 0,
+        "t_wall": "2026-11-23T12:00:00.000Z",
+        "data": {
+          "content_id": "video-104",
+          "content_id_hashed": false,
+          "stream_type": "vod",
+          "protocol": "hls",
+          "player": {
+            "name": "ExoPlayer",
+            "version": "1.4.0"
+          }
+        }
+      },
+      {
+        "type": "play_requested",
+        "session_id": "e0000000-0000-4000-8000-000000000001",
+        "play_id": "f0000000-0000-4000-8000-000000000001",
+        "seq": 1,
+        "t_mono_ms": 100,
+        "t_wall": "2026-11-23T12:00:00.000Z",
+        "data": {}
+      },
+      {
+        "type": "buffering_start",
+        "session_id": "e0000000-0000-4000-8000-000000000001",
+        "play_id": "f0000000-0000-4000-8000-000000000001",
+        "seq": 2,
+        "t_mono_ms": 200,
+        "t_wall": "2026-11-23T12:00:00.000Z",
+        "data": {}
+      },
+      {
+        "type": "playback_end",
+        "session_id": "e0000000-0000-4000-8000-000000000001",
+        "play_id": "f0000000-0000-4000-8000-000000000001",
+        "seq": 3,
+        "t_mono_ms": 800,
+        "t_wall": "2026-11-23T12:00:00.000Z",
+        "data": {
+          "reason": "user_exit"
+        }
+      }
+    ]
+  },
+  "expected": {
+    "startup_ms": null,
+    "vsf": false,
+    "ebvs": true,
+    "exit_before_start_other": false,
+    "watch_ms": 0,
+    "seek_ms": 0,
+    "rebuffer_ms": 0,
+    "rebuffer_count": 0,
+    "play_time_ms": 0,
+    "rebuffer_ratio": null,
+    "rebuffers_per_hour": null,
+    "rebuffer_bucket": null,
+    "dropped": 0,
+    "rendered": 0,
+    "dropped_frame_ratio": null,
+    "dropped_frame_bucket": null,
+    "avg_bitrate_bps": null,
+    "bitrate_switch_count": 0,
+    "has_first_frame": false,
+    "playback_failure": false,
+    "app_health_kinds": [],
+    "crash_or_anr": false,
+    "qoe": null,
+    "clock_regression": false,
+    "seq_gaps": 0
+  }
+}
