@@ -104,4 +104,26 @@ describe("React Native TurboModule and Video Adapter", () => {
     expect(flushed).toBe(true);
     expect(mockNative.flush).toHaveBeenCalled();
   });
+
+  it("handles explicit session release and dropped frames", () => {
+    const adapter = new ReactNativeVideoAdapter();
+    const session = StreamPulse.attach(null, adapter);
+
+    session.onSeekStart();
+    expect(emittedEvents.some((e) => e.type === "seek_start")).toBe(true);
+
+    session.onDroppedFrames(12, 1200);
+    const dropEvent = emittedEvents.find((e) => e.type === "dropped_frames");
+    expect(dropEvent).toBeDefined();
+    expect(dropEvent?.data.dropped).toBe(12);
+    expect(dropEvent?.data.rendered).toBe(1200);
+
+    session.release();
+    expect(mockNative.releaseSession).toHaveBeenCalled();
+
+    // After release, no further events emitted
+    const countBefore = emittedEvents.length;
+    session.onPlayRequested();
+    expect(emittedEvents.length).toBe(countBefore);
+  });
 });

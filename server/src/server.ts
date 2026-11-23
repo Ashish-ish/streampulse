@@ -132,6 +132,15 @@ export function buildServer(options: ServerOptions = {}): FastifyInstance {
     return detail;
   });
 
+  app.get("/v1/sessions/:id/events", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const detail = getSessionDetail(db, id);
+    if (!detail) {
+      return reply.code(404).send({ error: "Session not found" });
+    }
+    return detail.waterfall;
+  });
+
   // Dashboard static file serving
   const dashboardDist =
     options.dashboardDistPath ??

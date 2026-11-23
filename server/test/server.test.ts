@@ -204,4 +204,107 @@ describe("StreamPulse Server & Analytics API", () => {
     expect(sessionsRes.statusCode).toBe(200);
     expect(sessionsRes.json().sessions.length).toBeGreaterThanOrEqual(1);
   });
+
+  it("serves timeseries metrics with various intervals and metric dimensions", async () => {
+    // Ingest nominal fixture first
+    const fixturePath = path.join(FIXTURES_DIR, "golden-nominal-playback.json");
+    const fixture = JSON.parse(fs.readFileSync(fixturePath, "utf-8"));
+    await app.inject({ method: "POST", url: "/v1/batches", payload: fixture.batch });
+
+    // Test qoe metric
+    const qoeRes = await app.inject({
+      method: "GET",
+      url: "/v1/metrics/timeseries?metric=qoe&interval=hour",
+    });
+    expect(qoeRes.statusCode).toBe(200);
+    const qoeData = qoeRes.json();
+    expect(Array.isArray(qoeData)).toBe(true);
+    expect(qoeData.length).toBeGreaterThanOrEqual(1);
+    expect(qoeData[0].avg_qoe).toBeDefined();
+
+    // Test startup metric
+    const startupRes = await app.inject({
+      method: "GET",
+      url: "/v1/metrics/timeseries?metric=startup&interval=day",
+    });
+    expect(startupRes.statusCode).toBe(200);
+
+    // Test rebuffer_ratio metric
+    const rebufferRes = await app.inject({
+      method: "GET",
+      url: "/v1/metrics/timeseries?metric=rebuffer_ratio&interval=minute",
+    });
+    expect(rebufferRes.statusCode).toBe(200);
+
+    // Test with platform filter
+    const filterRes = await app.inject({
+      method: "GET",
+      url: "/v1/metrics/timeseries?metric=qoe&platform=android",
+    });
+    expect(filterRes.statusCode).toBe(200);
+  });
+
+  it("serves correlation metrics for both rebuffer and dropped_frame dimensions", async () => {
+    const fixturePath = path.join(FIXTURES_DIR, "golden-dropped-frames-and-bitrate.json");
+    const fixture = JSON.parse(fs.readFileSync(fixturePath, "utf-8"));
+    await app.inject({ method: "POST", url: "/v1/batches", payload: fixture.batch });
+
+    const droppedCorrRes = await app.inject({
+      method: "GET",
+      url: "/v1/metrics/correlation?dimension=dropped_frame",
+    });
+    expect(droppedCorrRes.statusCode).toBe(200);
+    const buckets = droppedCorrRes.json();
+    expect(buckets.length).toBe(5);
+    expect(buckets.map((b: any) => b.bucket)).toEqual(["0", "0-1%", "1-3%", "3-10%", ">10%"]);
+  });
+
+  it("filters sessions by platform, app_version, and pagination", async () => {
+    const fixturePath = path.join(FIXTURES_DIR, "golden-nominal-playback.json");
+    const fixture = JSON.parse(fs.readFileSync(fixturePath, "utf-8"));
+    await app.inject({ method: "POST", url: "/v1/batches", payload: fixture.batch });
+
+    // Filter matching platform
+    const matchRes = await app.inject({
+      method: "GET",
+      url: "/v1/sessions?platform=android&limit=5&offset=0",
+    });
+    expect(matchRes.statusCode).toBe(200);
+    const body = matchRes.json();
+    expect(body.sessions.length).toBe(1);
+    expect(body.total).toBe(1);
+
+    // Filter non-matching platform
+    const noMatchRes = await app.inject({
+      method: "GET",
+      url: "/v1/sessions?platform=ios",
+    });
+    expect(noMatchRes.statusCode).toBe(200);
+    expect(noMatchRes.json().sessions.length).toBe(0);
+  });
+
+  it("returns 404 for non-existent session detail", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/sessions/e0000000-0000-0000-0000-nonexistent",
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("serves raw events waterfall via /v1/sessions/:id/events", async () => {
+    const fixturePath = path.join(FIXTURES_DIR, "golden-nominal-playback.json");
+    const fixture = JSON.parse(fs.readFileSync(fixturePath, "utf-8"));
+    await app.inject({ method: "POST", url: "/v1/batches", payload: fixture.batch });
+
+    const sessionId = fixture.batch.events[0].session_id;
+    const res = await app.inject({
+      method: "GET",
+      url: `/v1/sessions/${sessionId}/events`,
+    });
+    expect(res.statusCode).toBe(200);
+    const events = res.json();
+    expect(Array.isArray(events)).toBe(true);
+    expect(events.length).toBe(fixture.batch.events.length);
+    expect(events[0].type).toBe("session_start");
+  });
 });

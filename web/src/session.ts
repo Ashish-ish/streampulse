@@ -552,6 +552,10 @@ export class WebSessionStateMachine {
     });
   }
 
+  onPlaybackEnd(reason: "ended" | "user_exit" | "error" | "background" = "ended") {
+    this.end(reason);
+  }
+
   end(reason: "ended" | "user_exit" | "error" | "background" = "ended") {
     if (this.isEnded) return;
     this.isEnded = true;

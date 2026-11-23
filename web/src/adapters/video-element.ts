@@ -96,3 +96,5 @@ export class HTMLVideoElementAdapter {
     }
   }
 }
+
+export { HTMLVideoElementAdapter as VideoElementAdapter };

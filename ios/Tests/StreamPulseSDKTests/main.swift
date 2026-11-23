@@ -196,4 +196,61 @@ checkEqual(clean.contains("cdn.internal.net"), false, "Scrubber host removal")
 checkEqual(clean.contains("[url]"), true, "Scrubber [url] marker")
 print("✓ [Scrubber] URLs and query parameters redacted")
 
-print("\nAll Swift tests passed (3/3)!")
+// 4. Test Sampling
+checkEqual(Sampling.isSessionSampled(sessionId: "session-1", sampleRate: 1.0), true, "Sample rate 1.0")
+checkEqual(Sampling.isSessionSampled(sessionId: "session-1", sampleRate: 0.0), false, "Sample rate 0.0")
+let hash1 = Sampling.fnv1a32("test-hash")
+let hash2 = Sampling.fnv1a32("test-hash")
+checkEqual(hash1, hash2, "Deterministic FNV-1a hash")
+print("✓ [Sampling] Deterministic FNV-1a hashing & sampling boundaries")
+
+// 5. Test IntervalMath
+let iv1 = Interval(100, 500)
+let iv2 = Interval(300, 700)
+checkEqual(IntervalMath.measure([iv1]), 400, "Interval duration")
+let clipped = IntervalMath.clip([iv1], start: 200, end: 400)
+checkEqual(clipped.count, 1, "Clipped count")
+checkEqual(clipped[0].start, 200, "Clipped start")
+checkEqual(clipped[0].end, 400, "Clipped end")
+
+let baseInterval = Interval(1000, 5000)
+let cuts = [Interval(2000, 3000)]
+let remainingIntervals = IntervalMath.subtractAll(interval: baseInterval, cuts: cuts)
+checkEqual(remainingIntervals.count, 2, "Subtract pieces count")
+checkEqual(IntervalMath.measure(remainingIntervals), 3000, "Remaining duration after cut")
+print("✓ [IntervalMath] Interval measure, clip, and subtraction math")
+
+// 6. Test BreadcrumbStore
+let breadcrumbStore = BreadcrumbStore(fileName: "test_breadcrumb.json")
+breadcrumbStore.save(sessionId: "sess-bread-123", monoMs: 98765)
+let loadedBreadcrumb = breadcrumbStore.read()
+checkEqual(loadedBreadcrumb?.sessionId, "sess-bread-123", "Breadcrumb session ID")
+checkEqual(loadedBreadcrumb?.lastHeartbeatMonoMs, 98765, "Breadcrumb mono ms")
+breadcrumbStore.clear()
+checkEqual(breadcrumbStore.read(), nil, "Breadcrumb cleared")
+print("✓ [BreadcrumbStore] Atomic breadcrumb write, read, and clear")
+
+// 7. Test StreamPulse SDK Facade
+StreamPulse.initialize(config: StreamPulseConfig(
+    endpoint: URL(string: "http://localhost:3000")!,
+    appId: "com.test.ios"
+))
+StreamPulse.setEnabled(true)
+let meta = SessionMeta(contentId: "test_ios_video")
+let testSession = StreamPulse.attach(
+    player: "mock_player",
+    adapter: MockTestAdapter(),
+    sessionMeta: meta
+)
+checkEqual(testSession != nil, true, "Session creation")
+testSession?.onPlayRequested()
+testSession?.onFirstFrame()
+testSession?.release()
+print("✓ [StreamPulse] SDK facade initialization and session lifecycle")
+
+print("\nAll Swift tests passed (7/7)!")
+
+class MockTestAdapter: PlayerAdapter, @unchecked Sendable {
+    func attach(listener: PlayerListener) {}
+    func detach() {}
+}
