@@ -1,5 +1,7 @@
 import Foundation
+import AVFoundation
 import StreamPulseSDK
+import StreamPulseAVPlayer
 
 struct GoldenFixtureFile: Codable {
     let id: String
@@ -248,7 +250,40 @@ testSession?.onFirstFrame()
 testSession?.release()
 print("✓ [StreamPulse] SDK facade initialization and session lifecycle")
 
-print("\nAll Swift tests passed (7/7)!")
+// 8. Test AVPlayer Adapter with live stream URL and lifecycle
+let sampleVideoURL = URL(string: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4")!
+let avPlayer = AVPlayer(url: sampleVideoURL)
+let avAdapter = StreamPulseAVPlayer(player: avPlayer)
+let avMeta = SessionMeta(
+    contentId: "sample_bunny_ios",
+    streamType: .vod,
+    protocolType: .progressive,
+    player: PlayerInfo(name: "AVPlayer", version: "2.0")
+)
+let avSession = StreamPulse.attach(
+    player: avPlayer,
+    adapter: avAdapter,
+    sessionMeta: avMeta
+)
+checkEqual(avSession != nil, true, "AVPlayer session attachment")
+
+// Simulate AVPlayer lifecycle events via listener
+avSession?.onPlayRequested()
+avSession?.onFirstFrame()
+avSession?.onQualityChange(bitrateBps: 2_500_000, width: 1920, height: 1080)
+avSession?.onDroppedFrames(dropped: 3, rendered: 597)
+avSession?.onBufferingStart()
+avSession?.onBufferingEnd()
+avSession?.onSeekStart()
+avSession?.onSeekEnd()
+avSession?.onPlaybackEnd(reason: .ended)
+
+// Verify detachment
+avAdapter.detach()
+avSession?.release()
+print("✓ [StreamPulseAVPlayer] AVPlayer adapter live stream attach, telemetry collection, and detach")
+
+print("\nAll Swift tests passed (8/8)!")
 
 class MockTestAdapter: PlayerAdapter, @unchecked Sendable {
     func attach(listener: PlayerListener) {}

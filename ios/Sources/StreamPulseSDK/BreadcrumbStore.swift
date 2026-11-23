@@ -16,11 +16,14 @@ public final class BreadcrumbStore: @unchecked Sendable {
     private let fileURL: URL
     private let lock = NSLock()
 
-    public init(fileName: String = "streampulse_breadcrumb.json") {
+    public init(fileName: String = "streampulse_breadcrumb.json", directory: URL? = nil) {
         let fileManager = FileManager.default
         let baseDir: URL
-        if let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
-            try? fileManager.createDirectory(at: appSupport, withIntermediateDirectories: true)
+        if let directory = directory {
+            baseDir = directory
+        } else if let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first,
+                  (try? fileManager.createDirectory(at: appSupport, withIntermediateDirectories: true)) != nil,
+                  fileManager.isWritableFile(atPath: appSupport.path) {
             baseDir = appSupport
         } else {
             baseDir = URL(fileURLWithPath: NSTemporaryDirectory())

@@ -87,6 +87,8 @@ public final class StreamPulseSession: PlayerListener, @unchecked Sendable {
     private var seq: Int = 0
     private var heartbeatTimer: Timer?
     private var hasFirstFrame = false
+    private var isBuffering = false
+    private var isSeeking = false
     private var isReleased = false
     private let isSampled: Bool
 
@@ -192,18 +194,34 @@ public final class StreamPulseSession: PlayerListener, @unchecked Sendable {
     }
 
     public func onBufferingStart() {
+        lock.lock()
+        if isReleased || isBuffering { lock.unlock(); return }
+        isBuffering = true
+        lock.unlock()
         emit("buffering_start")
     }
 
     public func onBufferingEnd() {
+        lock.lock()
+        if isReleased || !isBuffering { lock.unlock(); return }
+        isBuffering = false
+        lock.unlock()
         emit("buffering_end")
     }
 
     public func onSeekStart() {
+        lock.lock()
+        if isReleased || isSeeking { lock.unlock(); return }
+        isSeeking = true
+        lock.unlock()
         emit("seek_start")
     }
 
     public func onSeekEnd() {
+        lock.lock()
+        if isReleased || !isSeeking { lock.unlock(); return }
+        isSeeking = false
+        lock.unlock()
         emit("seek_end")
     }
 
@@ -228,9 +246,22 @@ public final class StreamPulseSession: PlayerListener, @unchecked Sendable {
             "fatal": AnyCodable(.bool(fatal)),
             "message": AnyCodable(.string(scrubbed))
         ])
+        if fatal {
+            onPlaybackEnd(reason: .error)
+        }
     }
 
     public func onPlaybackEnd(reason: PlaybackEndReason) {
+        lock.lock()
+        let wasBuffering = isBuffering
+        let wasSeeking = isSeeking
+        isBuffering = false
+        isSeeking = false
+        lock.unlock()
+
+        if wasBuffering { emit("buffering_end") }
+        if wasSeeking { emit("seek_end") }
+
         emit("playback_end", data: [
             "reason": AnyCodable(.string(reason.rawValue))
         ])

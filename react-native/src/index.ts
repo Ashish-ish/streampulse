@@ -104,6 +104,9 @@ export class StreamPulseSession implements PlayerListener {
 
   onError(code: number, fatal: boolean, message: string): void {
     this.emit("playback_error", { code, fatal, message });
+    if (fatal) {
+      this.onPlaybackEnd("error");
+    }
   }
 
   onPlaybackEnd(reason: "ended" | "user_exit" | "error" | "background"): void {

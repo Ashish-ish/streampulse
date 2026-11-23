@@ -19,7 +19,7 @@ test-rn:
 	npm test --prefix react-native
 
 test-ios:
-	swift run --package-path ios StreamPulseTests
+	CLANG_MODULE_CACHE_PATH=/tmp/clang-cache DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift run --disable-sandbox --package-path ios StreamPulseTests
 
 test-core:
 	gradle :core:jvmTest

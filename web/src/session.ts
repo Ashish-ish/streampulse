@@ -558,9 +558,15 @@ export class WebSessionStateMachine {
 
   end(reason: "ended" | "user_exit" | "error" | "background" = "ended") {
     if (this.isEnded) return;
+    if (this.isBuffering) {
+      this.isBuffering = false;
+      this.emit("buffering_end", {});
+    }
+    if (this.isSeeking) {
+      this.isSeeking = false;
+      this.emit("seek_end", {});
+    }
     this.isEnded = true;
-    if (this.isBuffering) this.onBufferingEnd();
-    if (this.isSeeking) this.onSeekEnd();
     this.emit("playback_end", { reason });
   }
 

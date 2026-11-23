@@ -161,11 +161,19 @@ class SessionStateMachine(
 
     fun end(reason: String = "ended") {
         if (state == SessionState.ENDED) return
-        state = SessionState.ENDED
-        // Close open buffer or seek
-        if (isBuffering) onBufferingEnd()
-        if (isSeeking) onSeekEnd()
+        // Close open buffer or seek before marking state as ENDED
+        if (isBuffering) {
+            isBuffering = false
+            val (tMono, tWall) = clock()
+            emit("buffering_end", JsonObject(emptyMap()), tMono, tWall)
+        }
+        if (isSeeking) {
+            isSeeking = false
+            val (tMono, tWall) = clock()
+            emit("seek_end", JsonObject(emptyMap()), tMono, tWall)
+        }
 
+        state = SessionState.ENDED
         val (tMono, tWall) = clock()
         val data = buildJsonObject {
             put("reason", reason)

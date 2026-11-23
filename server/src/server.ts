@@ -102,10 +102,15 @@ export function buildServer(options: ServerOptions = {}): FastifyInstance {
   });
 
   app.get("/v1/metrics/timeseries", async (req) => {
-    const query = req.query as { metric?: string; breakdown?: string } & FilterParams;
+    const query = req.query as {
+      metric?: string;
+      breakdown?: string;
+      interval?: "minute" | "hour" | "day";
+    } & FilterParams;
     const metric = query.metric ?? "qoe";
     const breakdown = query.breakdown ?? "none";
-    return getTimeseriesMetrics(db, metric, breakdown, query);
+    const interval = query.interval ?? "hour";
+    return getTimeseriesMetrics(db, metric, breakdown, interval, query);
   });
 
   app.get("/v1/sessions", async (req) => {

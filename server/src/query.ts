@@ -99,10 +99,10 @@ export function getMetricsSummary(db: DatabaseSync, filters: FilterParams = {}) 
     startup_p50_ms: startupP50,
     startup_p90_ms: startupP90,
     startup_p95_ms: startupP95,
-    rebuffer_ratio: row.avg_rebuffer_ratio !== null ? Number(row.avg_rebuffer_ratio) : 0,
+    rebuffer_ratio: row.avg_rebuffer_ratio !== null ? Number(Number(row.avg_rebuffer_ratio).toFixed(6)) : 0,
     vsf_rate: Number(vsfRate.toFixed(2)),
     ebvs_rate: Number(ebvsRate.toFixed(2)),
-    dropped_frame_ratio: row.avg_dropped_frame_ratio !== null ? Number(row.avg_dropped_frame_ratio) : 0,
+    dropped_frame_ratio: row.avg_dropped_frame_ratio !== null ? Number(Number(row.avg_dropped_frame_ratio).toFixed(6)) : 0,
     crash_free_sessions_rate: Number(crashFreeRate.toFixed(2)),
     avg_qoe: row.avg_qoe !== null ? Number(Number(row.avg_qoe).toFixed(2)) : null,
   };
@@ -156,6 +156,7 @@ export function getTimeseriesMetrics(
   db: DatabaseSync,
   metric: string,
   breakdown = "none",
+  interval: "minute" | "hour" | "day" = "hour",
   filters: FilterParams = {}
 ) {
   const { sql: whereClause, params } = buildWhereClause(filters);
@@ -169,16 +170,22 @@ export function getTimeseriesMetrics(
       ? "network_type"
       : null;
 
-  // Bucket by hour (using SQLite strftime on ISO timestamp)
+  const timeFormat =
+    interval === "minute"
+      ? "%Y-%m-%dT%H:%M:00.000Z"
+      : interval === "day"
+      ? "%Y-%m-%dT00:00:00.000Z"
+      : "%Y-%m-%dT%H:00:00.000Z";
+
   const groupCols = breakdownCol
-    ? `strftime('%Y-%m-%dT%H:00:00.000Z', first_event_at), ${breakdownCol}`
-    : `strftime('%Y-%m-%dT%H:00:00.000Z', first_event_at)`;
+    ? `strftime('${timeFormat}', first_event_at), ${breakdownCol}`
+    : `strftime('${timeFormat}', first_event_at)`;
 
   const selectBreakdown = breakdownCol ? `${breakdownCol} AS breakdown_key,` : ``;
 
   const query = `
     SELECT
-      strftime('%Y-%m-%dT%H:00:00.000Z', first_event_at) AS time_bucket,
+      strftime('${timeFormat}', first_event_at) AS time_bucket,
       ${selectBreakdown}
       COUNT(*) AS session_count,
       AVG(startup_ms) AS avg_startup,

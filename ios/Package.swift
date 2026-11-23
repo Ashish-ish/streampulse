@@ -34,7 +34,7 @@ let package = Package(
         ),
         .executableTarget(
             name: "StreamPulseTests",
-            dependencies: ["StreamPulseSDK"],
+            dependencies: ["StreamPulseSDK", "StreamPulseAVPlayer"],
             path: "Tests/StreamPulseSDKTests"
         )
     ]
