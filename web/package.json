@@ -1,0 +1,17 @@
+{
+  "name": "@streampulse/web",
+  "version": "0.1.0",
+  "description": "StreamPulse Web Telemetry SDK with zero runtime dependencies",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.1",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  }
+}

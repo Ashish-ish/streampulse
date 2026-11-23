@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StreamPulse Web SDK Sample</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #3b82f6;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 24px; display: flex; flex-direction: column; align-items: center; }
+    .container { max-width: 900px; width: 100%; display: flex; flex-direction: column; gap: 20px; }
+    header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+    header h1 { font-size: 24px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    .badge { background: #1e3a8a; color: #93c5fd; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+    .player-section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    video { width: 100%; height: auto; max-height: 480px; background: #000; display: block; }
+    .controls { padding: 16px; display: flex; gap: 10px; flex-wrap: wrap; background: #111827; border-top: 1px solid var(--border); }
+    button { background: var(--accent); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+    button:hover { opacity: 0.9; }
+    button.secondary { background: #475569; }
+    button.danger { background: var(--danger); }
+    .hud { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .metric-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+    .metric-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 4px; }
+    .metric-value { font-size: 20px; font-weight: 700; color: var(--text); }
+    .metric-value.highlight { color: var(--success); }
+    .log-panel { background: #020617; border: 1px solid var(--border); border-radius: 8px; padding: 12px; height: 160px; overflow-y: auto; font-family: monospace; font-size: 12px; color: #38bdf8; }
+    .log-entry { margin-bottom: 4px; line-height: 1.4; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>StreamPulse Web Telemetry <span class="badge">SDK v0.1.0</span></h1>
+      <div id="status" style="font-size: 13px; color: var(--success);">● Connected to /v1/batches</div>
+    </header>
+
+    <div class="player-section">
+      <video id="player" controls playsinline crossorigin="anonymous" poster="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='450' viewBox='0 0 800 450'><rect width='100%25' height='100%25' fill='%231e293b'/><text x='50%25' y='50%25' fill='%2394a3b8' font-size='24' font-family='sans-serif' text-anchor='middle' dominant-baseline='middle'>StreamPulse Demo Video</text></svg>">
+        <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <div class="controls">
+        <button id="btn-play">▶ Play</button>
+        <button id="btn-pause" class="secondary">⏸ Pause</button>
+        <button id="btn-seek" class="secondary">⏩ Seek +30s</button>
+        <button id="btn-flush" class="secondary">⚡ Flush Queue</button>
+        <button id="btn-sim-error" class="danger">⚠ Inject Error</button>
+      </div>
+    </div>
+
+    <div class="hud">
+      <div class="metric-card">
+        <div class="metric-title">Startup Time</div>
+        <div class="metric-value highlight" id="m-startup">-</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-title">Rebuffer Count / Duration</div>
+        <div class="metric-value" id="m-rebuffer">0 / 0 ms</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-title">Dropped Frames</div>
+        <div class="metric-value" id="m-dropped">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-title">Active Bitrate</div>
+        <div class="metric-value" id="m-bitrate">-</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-title">QoE Score</div>
+        <div class="metric-value highlight" id="m-qoe">-</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-title">Events Queued</div>
+        <div class="metric-value" id="m-queue">0</div>
+      </div>
+    </div>
+
+    <div class="log-panel" id="log-panel">
+      <div class="log-entry">[StreamPulse] Initialized with endpoint http://localhost:3000/v1/batches</div>
+    </div>
+  </div>
+
+  <script type="module">
+    // In production, this imports from '@streampulse/web'
+    // For standalone demo preview, we hook standard video events and display live telemetry HUD
+    const logPanel = document.getElementById('log-panel');
+    function log(msg) {
+      const el = document.createElement('div');
+      el.className = 'log-entry';
+      el.textContent = `[${new Date().toISOString().substring(11, 19)}] ${msg}`;
+      logPanel.appendChild(el);
+      logPanel.scrollTop = logPanel.scrollHeight;
+    }
+
+    const video = document.getElementById('player');
+    let playRequestedAt = 0;
+    let firstFrameAt = 0;
+    let bufferingCount = 0;
+    let bufferingDuration = 0;
+    let bufferStart = 0;
+    let eventCount = 0;
+
+    video.addEventListener('play', () => {
+      if (!playRequestedAt) {
+        playRequestedAt = performance.now();
+        log('Event: play_requested');
+        eventCount++;
+        document.getElementById('m-queue').textContent = eventCount;
+      }
+    });
+
+    video.addEventListener('playing', () => {
+      if (playRequestedAt && !firstFrameAt) {
+        firstFrameAt = performance.now();
+        const startupMs = Math.round(firstFrameAt - playRequestedAt);
+        document.getElementById('m-startup').textContent = `${startupMs} ms`;
+        document.getElementById('m-qoe').textContent = (100 - Math.min(startupMs / 100, 30)).toFixed(1);
+        log(`Event: first_frame (Startup: ${startupMs} ms)`);
+        eventCount++;
+        document.getElementById('m-queue').textContent = eventCount;
+      }
+      if (bufferStart) {
+        const dur = Math.round(performance.now() - bufferStart);
+        bufferingDuration += dur;
+        bufferStart = 0;
+        document.getElementById('m-rebuffer').textContent = `${bufferingCount} / ${bufferingDuration} ms`;
+        log(`Event: buffering_end (Stall duration: ${dur} ms)`);
+        eventCount++;
+        document.getElementById('m-queue').textContent = eventCount;
+      }
+    });
+
+    video.addEventListener('waiting', () => {
+      if (firstFrameAt) {
+        bufferingCount++;
+        bufferStart = performance.now();
+        log('Event: buffering_start');
+        eventCount++;
+        document.getElementById('m-queue').textContent = eventCount;
+      }
+    });
+
+    video.addEventListener('seeking', () => {
+      log('Event: seek_start');
+      eventCount++;
+      document.getElementById('m-queue').textContent = eventCount;
+    });
+
+    video.addEventListener('seeked', () => {
+      log('Event: seek_end');
+      eventCount++;
+      document.getElementById('m-queue').textContent = eventCount;
+    });
+
+    // Monitor dropped frames
+    setInterval(() => {
+      if (video.getVideoPlaybackQuality) {
+        const q = video.getVideoPlaybackQuality();
+        document.getElementById('m-dropped').textContent = `${q.droppedVideoFrames} / ${q.totalVideoFrames}`;
+      }
+    }, 1000);
+
+    document.getElementById('btn-play').addEventListener('click', () => video.play());
+    document.getElementById('btn-pause').addEventListener('click', () => video.pause());
+    document.getElementById('btn-seek').addEventListener('click', () => { video.currentTime += 30; });
+    document.getElementById('btn-flush').addEventListener('click', () => {
+      log(`StreamPulse.flush(): Dispatched ${eventCount} events to /v1/batches`);
+      eventCount = 0;
+      document.getElementById('m-queue').textContent = '0';
+    });
+    document.getElementById('btn-sim-error').addEventListener('click', () => {
+      log('Event: playback_error (Code: 4003, Fatal: true, Message: "Simulated stream decode failure")');
+      eventCount++;
+      document.getElementById('m-queue').textContent = eventCount;
+    });
+  </script>
+</body>
+</html>
